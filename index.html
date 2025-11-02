@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>الچتل والگرص</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="الچتل والگرص">
+  <meta name="theme-color" content="#0a5f66">
+
+  <style>
+    :root{
+      --bg1:#002a2f; /* deep teal */
+      --bg2:#004d57; /* aqua */
+      --accent:#7be0c9;
+      --bar:#111827;
+      --hp-green:#32d296;
+      --hp-red:#ff6b6b;
+      --btn-bg: rgba(255,255,255,0.06);
+      --glass: rgba(255,255,255,0.06);
+      font-family: "Segoe UI", Roboto, "Noto Naskh Arabic", system-ui, -apple-system;
+    }
+    html,body{height:100%;margin:0;padding:0;direction:rtl}
+    body{
+      background: radial-gradient(ellipse at 30% 20%, rgba(123,224,201,0.08), transparent 10%),
+                  linear-gradient(180deg,var(--bg1), var(--bg2));
+      color:#e6f7f1;
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* animated floating particles to emulate Avatar-like ambiance */
+    .particles{
+      position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image: radial-gradient(circle at 10% 20%, rgba(123,224,201,0.03) 0 2px, transparent 2px),
+                        radial-gradient(circle at 80% 70%, rgba(123,224,201,0.025) 0 3px, transparent 3px);
+      background-size: 120px 120px, 200px 200px;
+      animation: drift 12s linear infinite;
+      mix-blend-mode: screen;
+      opacity:0.9;
+    }
+    @keyframes drift{0%{transform:translateY(0)}50%{transform:translateY(-16px)}100%{transform:translateY(0)}}
+
+    .app{
+      width:100%;
+      max-width:900px;
+      margin:18px;
+      z-index:2;
+    }
+
+    header{display:flex;align-items:center;gap:12px;padding:12px 6px}
+    .title{
+      display:flex;flex-direction:column;
+    }
+    h1{margin:0;font-size:20px;letter-spacing:0.6px}
+    .sub{font-size:12px;color:rgba(230,247,241,0.7)}
+
+    .arena{
+      margin-top:8px;
+      background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.08));
+      border-radius:14px;
+      padding:12px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.45);
+      display:flex;
+      gap:10px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .player{
+      flex:1;
+      min-height:360px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px;
+      box-sizing:border-box;
+      text-align:center;
+    }
+
+    .avatar{
+      width:120px;height:120px;border-radius:50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.06));
+      display:flex;align-items:center;justify-content:center;font-weight:700;font-size:36px;color:#e6f7f1;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35), inset 0 -6px 14px rgba(0,0,0,0.18);
+    }
+
+    .hp-bar{
+      width:96%;height:18px;border-radius:12px;background:rgba(255,255,255,0.06);
+      margin-top:10px;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,0.25);
+    }
+    .hp-fill{height:100%;width:100%;background:linear-gradient(90deg,var(--hp-green),#6be8b7);transition:width 220ms linear}
+
+    .name{margin-top:8px;font-size:15px}
+    .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+    .btn{
+      padding:12px 16px;border-radius:10px;background:var(--btn-bg);border:1px solid rgba(255,255,255,0.06);
+      min-width:96px;color:#fff;font-weight:600;font-size:15px;backdrop-filter: blur(4px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35); touch-action: manipulation;
+    }
+    .btn:active{transform:translateY(2px)}
+    .small{min-width:72px;padding:10px 12px}
+
+    .center-info{flex:0 0 220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px}
+    .round{font-weight:800;font-size:14px;background:rgba(255,255,255,0.03);padding:6px 12px;border-radius:999px}
+    .result{font-size:20px;font-weight:800;color:#fff;padding:8px 12px;border-radius:10px;background:linear-gradient(90deg,#0ea5a4,#34d399);display:none}
+
+    .footer-controls{display:flex;gap:8px;justify-content:center;margin-top:12px}
+
+    /* responsive small screens */
+    @media (max-width:520px){
+      .center-info{display:none}
+      .player{padding:8px}
+      .btn{min-width:80px;font-size:14px}
+    }
+
+    /* flash animation on hit */
+    .flash {
+      position:absolute; inset:0; pointer-events:none; z-index:3; opacity:0;
+      background: radial-gradient(circle at var(--x,50%) var(--y,50%), rgba(255,255,255,0.06), transparent 20%);
+      transition:opacity 220ms ease;
+    }
+    .flash.show{opacity:1; transition:opacity 160ms ease;}
+  </style>
+</head>
+<body>
+  <div class="particles"></div>
+
+  <div class="app" role="application" aria-label="لعبة الچتل والگرص">
+    <header>
+      <div class="title">
+        <h1>الچتل والگرص</h1>
+        <div class="sub">قتال ثنائي سريع — العب مع أخيك على نفس الهاتف</div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="text-align:left;font-size:12px;color:rgba(230,247,241,0.8)">
+        الإصدار الأول
+      </div>
+    </header>
+
+    <main class="arena" id="arena">
+      <section class="player" id="player2"> 
+        <div style="width:100%;display:flex;flex-direction:column;align-items:center;">
+          <div class="avatar" id="avatar2">گرص</div>
+          <div class="name">الگرص</div>
+          <div class="hp-bar" aria-hidden="true"><div class="hp-fill" id="hp2"></div></div>
+        </div>
+
+        <div>
+          <div class="controls">
+            <button class="btn" id="p2-punch">👊 لكمة</button>
+            <button class="btn" id="p2-kick">🦶 ركلة</button>
+            <button class="btn small" id="p2-block">🛡 دفاع</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="center-info">
+        <div class="round" id="roundLabel">جولة 1</div>
+        <div class="result" id="result">فزت!</div>
+        <div style="font-size:12px;color:rgba(230,247,241,0.8)">نقاط: <span id="score">0 - 0</span></div>
+      </div>
+
+      <section class="player" id="player1">
+        <div style="width:100%;display:flex;flex-direction:column;align-items:center;">
+          <div class="avatar" id="avatar1">الچتل</div>
+          <div class="name">الچتل</div>
+          <div class="hp-bar" aria-hidden="true"><div class="hp-fill" id="hp1"></div></div>
+        </div>
+
+        <div>
+          <div class="controls">
+            <button class="btn" id="p1-punch">👊 لكمة</button>
+            <button class="btn" id="p1-kick">🦶 ركلة</button>
+            <button class="btn small" id="p1-block">🛡 دفاع</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="flash" id="flash"></div>
+    </main>
+
+    <div class="footer-controls">
+      <button class="btn" id="restart">إعادة اللعب</button>
+      <button class="btn" id="installHint">كيفية التثبيت</button>
+      <button class="btn" id="toggleSound">🔊 الصوت: تشغيل</button>
+    </div>
+  </div>
+
+  <script>
+  // --- إعداد PWA: تسجيل service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{console.log('SW failed')});
+  }
+
+  // --- لعبة قتال ثنائي محلية
+  const MAX_HP = 100;
+  let hp1 = MAX_HP, hp2 = MAX_HP;
+  let score1 = 0, score2 = 0;
+  let round = 1;
+  let soundOn = true;
+
+  const hpFill1 = document.getElementById('hp1');
+  const hpFill2 = document.getElementById('hp2');
+  const scoreLabel = document.getElementById('score');
+  const roundLabel = document.getElementById('roundLabel');
+  const resultLabel = document.getElementById('result');
+  const flash = document.getElementById('flash');
+
+  function updateUI(){
+    hpFill1.style.width = Math.max(0, hp1) + '%';
+    hpFill2.style.width = Math.max(0, hp2) + '%';
+    // gradient transition color red when low
+    hpFill1.style.background = hp1>40 ? 'linear-gradient(90deg,var(--hp-green),#6be8b7)' : 'linear-gradient(90deg,var(--hp-red),#ffa7a7)';
+    hpFill2.style.background = hp2>40 ? 'linear-gradient(90deg,var(--hp-green),#6be8b7)' : 'linear-gradient(90deg,var(--hp-red),#ffa7a7)';
+    scoreLabel.textContent = score1 + ' - ' + score2;
+    roundLabel.textContent = 'جولة ' + round;
+  }
+
+  // --- WebAudio: أصوات توليدية (محاكاة مؤثرات واقعية بسيطة)
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const ctx = AudioCtx ? new AudioCtx() : null;
+
+  function playHit(type='punch'){
+    if(!soundOn || !ctx) return;
+    const now = ctx.currentTime;
+    // ضرب قوي: موجة قصيرة + ضجيج للـ "صدمة"
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = (type==='kick') ? 'sawtooth' : 'square';
+    o.frequency.setValueAtTime(type==='kick' ? 160 : 220, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.45, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    // ضجيج قصير (impact)
+    const bufferSize = 2 * ctx.sampleRate;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(type==='kick' ? 1200 : 2400, now);
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.4, now);
+    ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    o.connect(g); g.connect(ctx.destination);
+    noise.connect(noiseFilter); noiseFilter.connect(ng); ng.connect(ctx.destination);
+
+    o.start(now); o.stop(now + 0.23);
+    noise.start(now); noise.stop(now + 0.18);
+  }
+
+  function playVictory(){
+    if(!soundOn || !ctx) return;
+    const now = ctx.currentTime;
+    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
+    o1.frequency.setValueAtTime(520, now);
+    o2.frequency.setValueAtTime(760, now);
+    o1.type='sine'; o2.type='sine';
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(0.35, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 1.0);
+    o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+    o1.start(now); o2.start(now); o1.stop(now + 1.0); o2.stop(now + 1.0);
+  }
+
+  function flashAt(xPerc, yPerc){
+    flash.style.setProperty('--x', xPerc + '%');
+    flash.style.setProperty('--y', yPerc + '%');
+    flash.classList.add('show');
+    setTimeout(()=>flash.classList.remove('show'), 160);
+  }
+
+  // --- هجمات ودفاع
+  function hit(target, dmg){
+    if(target === 1){
+      hp1 = Math.max(0, hp1 - dmg);
+      playHit(dmg>18 ? 'kick' : 'punch');
+      flashAt(70, 50); // يمين
+    } else {
+      hp2 = Math.max(0, hp2 - dmg);
+      playHit(dmg>18 ? 'kick' : 'punch');
+      flashAt(30, 50); // يسار
+    }
+    updateUI();
+    checkWin();
+  }
+
+  function blockPlayer(player){
+    // block reduces next incoming damage for a short time
+    // implemented simply: restore small HP (simulate perfect block regen)
+    if(player===1) { hp1 = Math.min(MAX_HP, hp1 + 6); } else { hp2 = Math.min(MAX_HP, hp2 + 6); }
+    // soft sound for block
+    if(ctx && soundOn){
+      const g = ctx.createGain(), o = ctx.createOscillator();
+      o.type='triangle'; o.frequency.setValueAtTime(420, ctx.currentTime);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.18);
+    }
+    updateUI();
+  }
+
+  function checkWin(){
+    if(hp1 <= 0 || hp2 <= 0){
+      const winner = (hp2 <= 0) ? 'الچتل' : 'الگرص';
+      if(hp2 <= 0) score1++; else score2++;
+      resultLabel.textContent = winner + ' فاز!';
+      resultLabel.style.display = 'block';
+      playVictory();
+      setTimeout(()=>{ resultLabel.style.display='none'; resetRound(); }, 1100);
+    }
+  }
+
+  function resetRound(){
+    hp1 = MAX_HP; hp2 = MAX_HP; round++; updateUI();
+  }
+
+  // --- أزرار اللعب
+  document.getElementById('p1-punch').addEventListener('click', ()=>hit(2, 12));
+  document.getElementById('p1-kick').addEventListener('click', ()=>hit(2, 22));
+  document.getElementById('p1-block').addEventListener('click', ()=>blockPlayer(1));
+
+  document.getElementById('p2-punch').addEventListener('click', ()=>hit(1, 12));
+  document.getElementById('p2-kick').addEventListener('click', ()=>hit(1, 22));
+  document.getElementById('p2-block').addEventListener('click', ()=>blockPlayer(2));
+
+  document.getElementById('restart').addEventListener('click', ()=>{
+    score1=0; score2=0; round=1; hp1=MAX_HP; hp2=MAX_HP; updateUI();
+  });
+
+  document.getElementById('toggleSound').addEventListener('click', (e)=>{
+    soundOn = !soundOn;
+    e.target.textContent = soundOn ? '🔊 الصوت: تشغيل' : '🔇 الصوت: إيقاف';
+  });
+
+  document.getElementById('installHint').addEventListener('click', ()=> {
+    alert('لتثبيت اللعبة على شاشة الآيفون: افتح هذا الرابط في Safari -> اضغط زر المشاركة (Share) -> اختر "Add to Home Screen" أو "إضافة إلى الشاشة الرئيسية".');
+  });
+
+  // ضبط أولي
+  updateUI();
+
+  // حركية سريعة للأفاتار (تأثير نبضة عندما يُضرب)
+  const avatar1 = document.getElementById('avatar1'), avatar2 = document.getElementById('avatar2');
+  const origTransform = avatar1.style.transform;
+  function shake(el){
+    el.animate([{transform:'translateY(0px)'},{transform:'translateY(-8px)'},{transform:'translateY(0px)'}],{duration:220,iterations:1});
+  }
+  // ربط الشيكات مع حدث الضرب من playHit (بسيط: مؤثر بصري بعد الضرب)
+  const observer = new MutationObserver(()=>{});
+  // call shake inside hit to provide visual feedback
+  const oldHit = hit;
+  hit = function(target,dmg){
+    oldHit(target,dmg);
+    if(target===1) shake(avatar1); else shake(avatar2);
+  };
+
+  // تأكد من استئناف صوت WebAudio بعد تفاعل المستخدم (iOS requirement)
+  function resumeAudio(){
+    if(ctx && ctx.state === 'suspended') ctx.resume();
+    window.removeEventListener('touchstart', resumeAudio);
+    window.removeEventListener('click', resumeAudio);
+  }
+  window.addEventListener('touchstart', resumeAudio, {once:true});
+  window.addEventListener('click', resumeAudio, {once:true});
+
+  </script>
+</body>
+</html>
+commit:add index.html
